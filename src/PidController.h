@@ -28,6 +28,8 @@ private:
   double max_cte_;
   std::unique_ptr<Pid> pid_;
   std::unique_ptr<Twiddler> twiddler_;
+
+  void UpdateTwiddlerAndReset(double error);
 };
 
 #endif // PID_CONTROLLER_H

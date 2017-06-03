@@ -36,11 +36,11 @@ if (test)
 
   # Download and install GoogleTest
   ExternalProject_Add(
-      gtest
-      URL https://github.com/google/googletest/archive/release-1.8.0.tar.gz
-      PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
-      # Disable install step
-      INSTALL_COMMAND ""
+    gtest
+    URL https://github.com/google/googletest/archive/release-1.8.0.tar.gz
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
+    # Disable install step
+    INSTALL_COMMAND ""
   )
 
   # Get GTest source and binary directories from CMake project
@@ -52,8 +52,7 @@ if (test)
 
   # Set libgtest properties
   set_target_properties(libgtest PROPERTIES
-      "IMPORTED_LOCATION" "${binary_dir}/googlemock/gtest/libgtest.a"
-      "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
+    "IMPORTED_LOCATION" "${binary_dir}/googlemock/gtest/libgtest.a"
   )
 
   # Create a libgmock target to be used as a dependency by test programs
@@ -62,18 +61,16 @@ if (test)
 
   # Set libgmock properties
   set_target_properties(libgmock PROPERTIES
-      "IMPORTED_LOCATION" "${binary_dir}/googlemock/libgmock.a"
-      "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
+    "IMPORTED_LOCATION" "${binary_dir}/googlemock/libgmock.a"
   )
 
-  # I couldn't make it work with INTERFACE_INCLUDE_DIRECTORIES
   include_directories("${source_dir}/googletest/include"
                       "${source_dir}/googlemock/include")
 
-  # Add component under test
-  add_library(twiddler_lib ./src/Twiddler.cpp)
-  add_library(pid_lib ./src/Pid.cpp)
-  add_library(pid_controller_lib ./src/PidController.cpp)
+  # Add components under test
+  add_library(twiddler_lib src/Twiddler.cpp)
+  add_library(pid_lib src/Pid.cpp)
+  add_library(pid_controller_lib src/PidController.cpp)
 
   target_link_libraries(pid twiddler_lib)
   target_link_libraries(pid pid_lib)
@@ -84,9 +81,9 @@ if (test)
   ##############
   # Unit Tests
   ##############
-  add_executable(test_twiddler ./test/TestTwiddler.cpp)
-  add_executable(test_pid ./test/TestPid.cpp)
-  add_executable(test_pid_controller ./test/TestPidController.cpp)
+  add_executable(test_twiddler test/TestTwiddler.cpp)
+  add_executable(test_pid test/TestPid.cpp)
+  add_executable(test_pid_controller test/TestPidController.cpp)
 
   # Standard linking to gtest stuff
   target_link_libraries(test_twiddler libgtest libgmock)

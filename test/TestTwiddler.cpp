@@ -2,13 +2,11 @@
 #include "gtest/gtest.h"
 #include "Robot.h"
 #include "../src/Twiddler.h"
-//#include <iostream>
 
 using ::testing::Pointwise;
 
 template<typename T>
 bool IsNear(T v1, T v2, T tolerance) {
-//  std::cout << "v1 " << v1 << ", v2 " << v2 << std::endl;
   return v1 > v2 - tolerance && v1 < v2 + tolerance;
 }
 
@@ -25,7 +23,7 @@ Robot MakeRobot() {
 }
 
 double RunRobot(Robot& robot,
-                double tau_p, double tau_d, double tau_i,
+                double tau_p, double tau_i, double tau_d,
                 size_t n_iterations) {
   double x = 0;
   double y = 0;
@@ -85,18 +83,16 @@ TEST(Twiddler, Manual) {
 
 TEST(Twiddler, Robot) {
   Twiddler::ParameterSequence p0
-    = {{.p=0, .dp=0.5}, {.p=0, 10}, {.p=0, .dp=0.01}};
+    = {{.p=0, .dp=0.5}, {.p=0, .dp=0.01}, {.p=0, 10}};
   auto p0_final = p0;
   Twiddler twiddler(p0);
   auto robot = MakeRobot();
   double best_error = RunRobot(robot, p0[0].p, p0[1].p, p0[2].p, 100);
   auto p1 = twiddler.UpdateError(best_error);
   auto p1_final = p1;
-//  std::cout << "Ini p1 - " << p1[0].p << "," << p1[0].dp << " " << p1[1].p << "," << p1[1].dp << " " << p1[2].p << "," << p1[2].dp << std::endl;
   auto step = 0;
   while (DeltaParametersSum(p0) > 1e-3) {
     ++step;
-//    std::cout << "step " << step << std::endl;
     for (auto i = 0; i < p0.size(); ++i) {
       p0[i].p += p0[i].dp;
       robot = MakeRobot();
@@ -104,8 +100,6 @@ TEST(Twiddler, Robot) {
       p0_final = p0;
       p1_final = p1;
       p1 = twiddler.UpdateError(error);
-//      std::cout << "Pos p0 - " << p0[0].p << "," << p0[0].dp << " " << p0[1].p << "," << p0[1].dp << " " << p0[2].p << "," << p0[2].dp << std::endl;
-//      std::cout << "Pos p1 - " << p1[0].p << "," << p1[0].dp << " " << p1[1].p << "," << p1[1].dp << " " << p1[2].p << "," << p1[2].dp << std::endl;
       if (error < best_error) {
         best_error = error;
         p0[i].dp *= 1.1;
@@ -123,13 +117,9 @@ TEST(Twiddler, Robot) {
           p0[i].p += p0[i].dp;
           p0[i].dp *= 0.9;
         }
-//        std::cout << "Neg p0 - " << p0[0].p << "," << p0[0].dp << " " << p0[1].p << "," << p0[1].dp << " " << p0[2].p << "," << p0[2].dp << std::endl;
-//        std::cout << "Neg p1 - " << p1[0].p << "," << p1[0].dp << " " << p1[1].p << "," << p1[1].dp << " " << p1[2].p << "," << p1[2].dp << std::endl;
       }
     }
   }
-//  std::cout << "Final p0 - " << p0_final[0].p << "," << p0_final[0].dp << " " << p0_final[1].p << "," << p0_final[1].dp << " " << p0_final[2].p << "," << p0_final[2].dp << std::endl;
-//  std::cout << "Final p1 - " << p1_final[0].p << "," << p1_final[0].dp << " " << p1_final[1].p << "," << p1_final[1].dp << " " << p1_final[2].p << "," << p1_final[2].dp << std::endl;
   EXPECT_THAT(p0_final, Pointwise(NearPointwise(1e-9), p1_final));
 }
 

@@ -3,7 +3,6 @@
 
 #include <vector>
 
-// TODO: consider templatizing
 class Twiddler {
 public:
   struct Parameter {
