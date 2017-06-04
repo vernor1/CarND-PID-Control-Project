@@ -8,8 +8,11 @@ using namespace std::placeholders;
 
 // Local Constants
 // -----------------------------------------------------------------------------
+
+// TCP port accepting incoming connections from simulator
 enum { kTcpPort = 4567 };
 
+// Default PID coefficients
 const auto kKp = 0.12;
 const auto kKi = 1e-5;
 const auto kKd = 4.0;
@@ -18,8 +21,9 @@ const auto kKd = 4.0;
 // -----------------------------------------------------------------------------
 
 // Checks if the SocketIO event has JSON data.
-// If there is data the JSON object in string format will be returned,
-// else the empty string "" will be returned.
+// @param[in] s  Raw event string
+// @return       If there is data the JSON object in string format will be
+//               returned, else the empty string will be returned.
 std::string HasData(const std::string& s) {
   auto found_null = s.find("null");
   auto b1 = s.find_first_of("[");
@@ -29,9 +33,10 @@ std::string HasData(const std::string& s) {
     && b2 != std::string::npos ? s.substr(b1, b2 - b1 + 1) : std::string();
 }
 
-// Checks arguments of the program and exits if the check fails.
+// Checks arguments of the program and exits, if the check fails.
 // @param[in] argc  Number of arguments
 // @param[in] argv  Array of arguments
+// @return          A smart pointer to the PID controller object
 std::shared_ptr<PidController> CreatePidController(int argc, char* argv[]) {
   std::stringstream oss;
     oss << "Usage instructions: " << argv[0]
@@ -96,6 +101,10 @@ std::shared_ptr<PidController> CreatePidController(int argc, char* argv[]) {
   return pid_controller;
 }
 
+// Sends a control message to the simulator.
+// @param[in] ws        WebSocket object
+// @param[in] steering  Steering value
+// @param[in] throttle  Throttle value
 void ControlSimulator(uWS::WebSocket<uWS::SERVER>& ws,
                       double steering,
                       double throttle) {
@@ -106,10 +115,15 @@ void ControlSimulator(uWS::WebSocket<uWS::SERVER>& ws,
   ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 }
 
+// Sends a reset message to the simulator.
+// @param[in] ws        WebSocket object
 void ResetSimulator(uWS::WebSocket<uWS::SERVER>& ws) {
   std::string msg("42[\"reset\", {}]");
   ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 }
+
+// main
+// -----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {

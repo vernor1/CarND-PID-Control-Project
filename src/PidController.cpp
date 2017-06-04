@@ -1,25 +1,47 @@
+#include "PidController.h"
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include "PidController.h"
 
 namespace {
 
 // Local Constants
 // -----------------------------------------------------------------------------
 
-const auto kMinMeasurementDistance = 5.0;
-const auto kMaxCteSkipPart = 0.025;
+// Target CTE margin w.r.t. the off track CTE
+const auto kTargetCteMargin = 0.25;
+
+// Initial part of track where off track detection is not applied
+const auto kSkipOffTrackPart = 0.00125;
+
+// Initial part of track where max CTE updates are skipped
+const auto kSkipMaxCtePart = 0.025;
+
+// Twiddler error penalty when going off track
 const auto kOffTrackPenalty = 1e+6;
+
+// Meters in mile per international agreement of 1959
 const auto kMetersInMile = 1609.344;
+
+// Default framerate
 const auto kFrameRate = 25.;
+
+// Time passed between frames
 const auto kSecondsPerFrame = 1. / kFrameRate;
+
+// Coefficient of conversion miles-per-hour to meters-per-second
 const auto kMphToMps = kMetersInMile / (60. * 60.);
+
+// Coefficient for computing distance passed since a previous frame, given the
+// instant speed
 const auto kSpeedToDistanceCoeff = kMphToMps / kFrameRate;
 
 // Local Helper-Functions
 // -----------------------------------------------------------------------------
 
+// Normalizes input within -1..+1.
+// @param[in] value  Value to normalize
+// @return           Normalized value
 double NormalizeControl(double value) {
   if (value > 1.) {
     return 1.;
@@ -73,13 +95,13 @@ void PidController::Update(
   if (!has_final_coefficients_) {
     distance_ += kSpeedToDistanceCoeff * speed;
     time_ += kSecondsPerFrame;
-    if (cte > max_cte_ && distance_ > track_length_ * kMaxCteSkipPart) {
+    if (cte > max_cte_ && distance_ > kSkipMaxCtePart * track_length_) {
       std::cout << "New max CTE " << max_cte_ << std::endl;
       max_cte_ = cte;
     }
 
     // Detect getting off track
-    if (distance_ > kMinMeasurementDistance
+    if (distance_ > kSkipOffTrackPart * track_length_
         && (std::fabs(cte) > off_track_cte_ || speed < 1.0)) {
       auto error = kOffTrackPenalty / distance_;
       std::cout << "Getting off track at distance " << distance_ << ", speed "
@@ -98,8 +120,7 @@ void PidController::Update(
       if (max_cte_ < off_track_cte_ / 2.) {
         std::cout << "Using the final coefficients." << std::endl;
         has_final_coefficients_ = true;
-      }
-      else {
+      } else {
         UpdateTwiddlerAndReset(max_cte_);
         on_reset();
         return;

@@ -27,9 +27,8 @@ target_link_libraries(pid z ssl uv uWS)
 
 # Makes boolean 'test' available
 option(test "Build all tests" OFF)
-################################
 # Testing
-################################
+# ------------------------------------------------------------------------------
 if (test)
   # Enable ExternalProject CMake module
   include(ExternalProject)
@@ -67,7 +66,8 @@ if (test)
   include_directories("${source_dir}/googletest/include"
                       "${source_dir}/googlemock/include")
 
-  # Add components under test
+  # Components under test
+  # ----------------------------------------------------------------------------
   add_library(twiddler_lib src/Twiddler.cpp)
   add_library(pid_lib src/Pid.cpp)
   add_library(pid_controller_lib src/PidController.cpp)
@@ -78,9 +78,8 @@ if (test)
 
   enable_testing()
 
-  ##############
   # Unit Tests
-  ##############
+  # ----------------------------------------------------------------------------
   add_executable(test_twiddler test/TestTwiddler.cpp)
   add_executable(test_pid test/TestPid.cpp)
   add_executable(test_pid_controller test/TestPidController.cpp)
@@ -93,7 +92,8 @@ if (test)
   # Extra linking for the project
   target_link_libraries(test_twiddler twiddler_lib)
   target_link_libraries(test_pid pid_lib)
-  target_link_libraries(test_pid_controller pid_controller_lib pid_lib twiddler_lib)
+  target_link_libraries(test_pid_controller pid_controller_lib pid_lib
+                        twiddler_lib)
 
   # Make tests running through 'make test'
   add_test(NAME test_twiddler COMMAND test_twiddler)

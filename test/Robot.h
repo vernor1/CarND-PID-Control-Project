@@ -1,3 +1,6 @@
+#ifndef ROBOT_H
+#define ROBOT_H
+
 #include <cmath>
 #include <random>
 
@@ -5,13 +8,13 @@ class Robot {
 public:
   // Creates robot and initializes location/orientation to 0, 0, 0.
   Robot(double length = 20)
-    : x_(0),
-      y_(0),
-      orientation_(0),
+    : x_(),
+      y_(),
+      orientation_(),
       length_(length),
-      steering_noise_(0),
-      distance_noise_(0),
-      steering_drift_(0) { }
+      steering_noise_(),
+      distance_noise_(),
+      steering_drift_() { }
 
   virtual ~Robot() { }
 
@@ -22,7 +25,7 @@ public:
     orientation_ = std::remainder(orientation, 2. * M_PI);
   }
 
-  // Gets robot coordinates;
+  // Gets robot coordinates.
   void Get(double& x, double& y, double& orientation) const {
     x = x_;
     y = y_;
@@ -96,3 +99,5 @@ private:
   double distance_noise_;
   double steering_drift_;
 };
+
+#endif // ROBOT_H

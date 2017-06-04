@@ -28,8 +28,7 @@ Twiddler::ParameterSequence Twiddler::UpdateError(double error) {
         best_error_ = error;
         parameters_.at(parameter_id_).dp *= 1.1;
         CompletePositiveChange();
-      }
-      else {
+      } else {
         parameters_.at(parameter_id_).p -= 2.
           * parameters_.at(parameter_id_).dp;
         state_ = State::kNegativeChange;
@@ -41,8 +40,7 @@ Twiddler::ParameterSequence Twiddler::UpdateError(double error) {
       best_error_ = error;
       parameters_.at(parameter_id_).dp *= 1.1;
       CompletePositiveChange();
-    }
-    else {
+    } else {
       parameters_.at(parameter_id_).p += parameters_.at(parameter_id_).dp;
       parameters_.at(parameter_id_).dp *= 0.9;
       CompletePositiveChange();

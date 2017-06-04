@@ -3,25 +3,29 @@
 
 class Pid {
 public:
-  // Ctor
+  // Constructor.
+  // @param kp  Coefficient Kp of PID
+  // @param ki  Coefficient Ki of PID
+  // @param kd  Coefficient Kd of PID
   Pid(double kp, double ki, double kd);
-  // Dtor
-  virtual ~Pid() { }
 
-  // Update the Pid error variables given cross track error.
-  // Calculates the total Pid error.
+  // Updates the PID error given cross-track error (CTE). Calculates the total
+  // PID error.
+  // @param cte  Cross-track error (CTE)
   double GetError(double cte);
 
 private:
-  // PID Coefficients
+  // PID coefficients Kp, Ki, Kd
   double kp_;
   double ki_;
   double kd_;
-  // PID Errors
+
+  // PID errors
   double p_error_;
   double i_error_;
   double d_error_;
-  // Previous CTE
+
+  // Previous CTE and indication whether it's initialized
   double cte_prev_;
   bool is_cte_prev_initialized_;
 };
