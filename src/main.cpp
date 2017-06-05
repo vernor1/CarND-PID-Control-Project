@@ -17,6 +17,9 @@ const auto kKp = 0.12;
 const auto kKi = 1e-5;
 const auto kKd = 4.0;
 
+// CTE when the vehicle is considered off-track
+const auto kOffTrackCte = 5.0;
+
 // Local Helper-Functions
 // -----------------------------------------------------------------------------
 
@@ -24,7 +27,7 @@ const auto kKd = 4.0;
 // @param[in] s  Raw event string
 // @return       If there is data the JSON object in string format will be
 //               returned, else the empty string will be returned.
-std::string HasData(const std::string& s) {
+std::string GetJsonData(const std::string& s) {
   auto found_null = s.find("null");
   auto b1 = s.find_first_of("[");
   auto b2 = s.find_last_of("]");
@@ -40,24 +43,25 @@ std::string HasData(const std::string& s) {
 std::shared_ptr<PidController> CreatePidController(int argc, char* argv[]) {
   std::stringstream oss;
     oss << "Usage instructions: " << argv[0]
-        << " [Kp Ki Kd] [dKp dKi dKd trackLength offTrackCte]" << std::endl
+        << " [Kp Ki Kd offTrackCte] [dKp dKi dKd trackLength]" << std::endl
         << "  Kp          Proportional coefficient" << std::endl
         << "  Ki          Integral coefficient" << std::endl
         << "  Kd          Differential coefficient" << std::endl
+        << "  offTrackCte Approximate CTE when getting off track" << std::endl
         << "  dKp         Delta of Kp" << std::endl
         << "  dKi         Delta of Ki" << std::endl
         << "  dKd         Delta of Kd" << std::endl
         << "  trackLength Approximate track length in meters" << std::endl
-        << "  offTrackCte Approximate CTE when getting off track" << std::endl
         << "If no arguments provided, the default values are used: Kp="
-        << kKp << ", Ki=" << kKi << ", Kd=" << kKd << "." << std::endl
+        << kKp << ", Ki=" << kKi << ", Kd=" << kKd << ", offTrackCte="
+        << kOffTrackCte << "." << std::endl
         << "If only [Kp Ki Kd] are provided, the PID controller uses"
         << " those values." << std::endl
-        << "If [dKp dKi dKd trackLength offTrackCte] are also provided, the PID"
+        << "If [dKp dKi dKd trackLength] are also provided, the PID"
         << " controller finds best coefficients using the Twiddle algorithm,"
         << " and uses them." << std::endl;
 
-  if (argc != 1 && argc != 4 && argc != 9) {
+  if (argc != 1 && argc != 5 && argc != 9) {
     std::cerr << oss.str();
     std::exit(EXIT_FAILURE);
   }
@@ -66,26 +70,27 @@ std::shared_ptr<PidController> CreatePidController(int argc, char* argv[]) {
   try {
     switch (argc) {
       case 1:
-        pid_controller.reset(new PidController(kKp, kKi, kKd));
+        pid_controller.reset(new PidController(kKp, kKi, kKd, kOffTrackCte));
         break;
-      case 4: {
+      case 5: {
         auto kp = std::stod(argv[1]);
         auto ki = std::stod(argv[2]);
         auto kd = std::stod(argv[3]);
-        pid_controller.reset(new PidController(kp, ki, kd));
+        auto off_track_cte = std::stod(argv[4]);
+        pid_controller.reset(new PidController(kp, ki, kd, off_track_cte));
         break;
       }
       case 9: {
         auto kp = std::stod(argv[1]);
         auto ki = std::stod(argv[2]);
         auto kd = std::stod(argv[3]);
-        auto dkp = std::stod(argv[4]);
-        auto dki = std::stod(argv[5]);
-        auto dkd = std::stod(argv[6]);
-        auto track_length = std::stod(argv[7]);
-        auto off_track_cte = std::stod(argv[8]);
-        pid_controller.reset(new PidController(kp, ki, kd, dkp, dki, dkd,
-                                               track_length, off_track_cte));
+        auto off_track_cte = std::stod(argv[4]);
+        auto dkp = std::stod(argv[5]);
+        auto dki = std::stod(argv[6]);
+        auto dkd = std::stod(argv[7]);
+        auto track_length = std::stod(argv[8]);
+        pid_controller.reset(new PidController(kp, ki, kd, off_track_cte,
+                                               dkp, dki, dkd, track_length));
         break;
       }
       default:
@@ -137,7 +142,7 @@ int main(int argc, char* argv[])
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
-      auto s = HasData(std::string(data).substr(0, length));
+      auto s = GetJsonData(std::string(data).substr(0, length));
       if (!s.empty()) {
         auto j = nlohmann::json::parse(s);
         auto event = j[0].get<std::string>();
@@ -160,22 +165,10 @@ int main(int argc, char* argv[])
     }
   });
 
-  hub.onConnection([](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "WebSocket connected" << std::endl;
-  });
-
-  hub.onDisconnection([](uWS::WebSocket<uWS::SERVER> ws,
-                         int code,
-                         char* message,
-                         size_t length) {
-    ws.close();
-    std::cout << "WebSocket disconnected" << std::endl;
-  });
-
   if (hub.listen(kTcpPort)) {
-    std::cout << "Listening to port " << kTcpPort << std::endl;
+    std::cout << "Listening on port " << kTcpPort << std::endl;
   } else {
-    std::cerr << "Failed to listen to port" << std::endl;
+    std::cerr << "Failed to listen on port " << kTcpPort << std::endl;
     return -1;
   }
 

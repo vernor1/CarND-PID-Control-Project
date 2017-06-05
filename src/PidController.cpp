@@ -1,6 +1,7 @@
 #include "PidController.h"
 #include <cassert>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 
 namespace {
@@ -9,7 +10,13 @@ namespace {
 // -----------------------------------------------------------------------------
 
 // Target CTE margin w.r.t. the off track CTE
-const auto kTargetCteMargin = 0.25;
+const auto kTargetCteMargin = 0.65;
+
+// Max vehicle speed in miles-per-hour
+const auto kMaxSpeed = 100.0;
+
+// Safe CTE margin w.r.t. the off track CTE when driving normally
+const auto kSafeCteMargin = 0.6;
 
 // Initial part of track where off track detection is not applied
 const auto kSkipOffTrackPart = 0.00125;
@@ -42,12 +49,13 @@ const auto kSpeedToDistanceCoeff = kMphToMps / kFrameRate;
 // Normalizes input within -1..+1.
 // @param[in] value  Value to normalize
 // @return           Normalized value
-double NormalizeControl(double value) {
-  if (value > 1.) {
-    return 1.;
+template<typename T>
+double Normalize(T value, T lower_boundary, T upper_boundary) {
+  if (value > upper_boundary) {
+    return upper_boundary;
   }
-  if (value < -1.) {
-    return -1.;
+  if (value < lower_boundary) {
+    return lower_boundary;
   }
   return value;
 }
@@ -58,29 +66,38 @@ double NormalizeControl(double value) {
 // -----------------------------------------------------------------------------
 
 PidController::PidController(double kp, double ki, double kd,
+                             double off_track_cte,
                              double dkp, double dki, double dkd,
-                             double track_length, double off_track_cte)
+                             double track_length)
   : has_final_coefficients_(false),
-    track_length_(track_length),
     off_track_cte_(off_track_cte),
+    track_length_(track_length),
     distance_(),
-    time_(),
+    no_max_cte_distance_(kSkipMaxCtePart * track_length),
+    no_off_track_distance_(kSkipOffTrackPart * track_length),
+    n_frames_(),
+    safe_cte_(kSafeCteMargin * off_track_cte),
     max_cte_(),
+    sum_cte_(),
     pid_(new Pid(kp, ki, kd)),
     twiddler_(
       new Twiddler({{.p=kp, .dp=dkp}, {.p=ki, .dp=dki}, {.p=kd, .dp=dkd}})) {
   std::cout << "Creating PID controller with initial coefficients Kp=" << kp
             << ", Ki=" << ki << ", Kd=" << kd << ", dKp=" << dkp << ", dKi="
-            << dki << ", dKd=" << dkd << std::endl;
+            << dki << ", dKd=" << dkd << ", off-track CTE=" << off_track_cte
+            << ", target CTE=" << kTargetCteMargin * off_track_cte << std::endl;
 }
 
-PidController::PidController(double kp, double ki, double kd)
+PidController::PidController(double kp, double ki, double kd,
+                             double off_track_cte)
   : has_final_coefficients_(true),
+    off_track_cte_(off_track_cte),
     track_length_(),
-    off_track_cte_(),
     distance_(),
-    time_(),
+    n_frames_(),
+    safe_cte_(kSafeCteMargin * off_track_cte),
     max_cte_(),
+    sum_cte_(),
     pid_(new Pid(kp, ki, kd)) {
   std::cout << "Creating PID controller with final coefficients Kp="
             << kp << ", Ki=" << ki << ", Kd=" << kd << std::endl;
@@ -93,19 +110,20 @@ void PidController::Update(
   std::function<void()> on_reset) {
 
   if (!has_final_coefficients_) {
+    ++n_frames_;
     distance_ += kSpeedToDistanceCoeff * speed;
-    time_ += kSecondsPerFrame;
-    if (cte > max_cte_ && distance_ > kSkipMaxCtePart * track_length_) {
-      std::cout << "New max CTE " << max_cte_ << std::endl;
+    sum_cte_ += std::fabs(cte);
+    if (cte > max_cte_ && distance_ > no_max_cte_distance_) {
       max_cte_ = cte;
     }
 
     // Detect getting off track
-    if (distance_ > kSkipOffTrackPart * track_length_
+    if (distance_ > no_off_track_distance_
         && (std::fabs(cte) > off_track_cte_ || speed < 1.0)) {
       auto error = kOffTrackPenalty / distance_;
-      std::cout << "Getting off track at distance " << distance_ << ", speed "
-                << speed << "! (error value " << error << ") ";
+      std::cout << "Getting off track at distance " << std::fixed
+                << std::setprecision(0) << distance_ << "m, speed " << speed
+                << "mph! " << std::defaultfloat;
       UpdateTwiddlerAndReset(error);
       on_reset();
       return;
@@ -113,26 +131,31 @@ void PidController::Update(
 
     // Detect completing the track
     if (distance_ > track_length_) {
-      auto average_speed = distance_ / (time_ * kMphToMps);
-      std::cout << "Max CTE is " << max_cte_ << " at distance " << distance_
-                << "m, time " << time_ << "s, average speed " << average_speed
-                << "mph. ";
-      if (max_cte_ < off_track_cte_ / 2.) {
+      auto time = kSecondsPerFrame * n_frames_;
+      auto average_speed = distance_ / (kMphToMps * time);
+      auto avg_cte = sum_cte_ / n_frames_;
+      auto error = max_cte_ * avg_cte;
+      std::cout << "Max CTE " << std::fixed << std::setprecision(3) << max_cte_
+                << ", average CTE " << avg_cte << " at distance "
+                << std::setprecision(0) << distance_ << "m, time " << time
+                << "s, average speed " << average_speed << "mph. "
+                << std::defaultfloat;
+      if (max_cte_ < kTargetCteMargin * off_track_cte_) {
         std::cout << "Using the final coefficients." << std::endl;
         has_final_coefficients_ = true;
       } else {
-        UpdateTwiddlerAndReset(max_cte_);
+        UpdateTwiddlerAndReset(error);
         on_reset();
         return;
       }
     }
   }
 
-  auto steering = NormalizeControl(pid_->GetError(cte));
-  auto throttle = 1.0;
-  if (speed > 60) {
-    throttle = NormalizeControl(1.0 - 4.0 * std::fabs(cte) / off_track_cte_);
-  }
+  auto steering = Normalize(pid_->GetError(cte), -1.0, 1.0);
+  // Throttle = 1 - 2 * (Speed / MaxSpeed) * (CTE / SafeCTE)
+  auto throttle = Normalize(1.0 - 2.0 * (speed / kMaxSpeed)
+                                      * (std::fabs(cte) / safe_cte_),
+                            -1.0, 1.0);
   on_control(steering, throttle);
 }
 
@@ -144,10 +167,12 @@ void PidController::UpdateTwiddlerAndReset(double error) {
   auto kp = parameters[0].p;
   auto ki = parameters[1].p;
   auto kd = parameters[2].p;
-  std::cout << "Trying PID coefficients " << kp << ", " << ki << ", " << kd
-            << std::endl;
+  std::cout << "Error " << std::fixed << std::setprecision(3) << error
+            << std::defaultfloat << ". Trying PID coefficients " << kp << ", "
+            << ki << ", " << kd << "." << std::endl;
   pid_.reset(new Pid(kp, ki, kd));
   distance_ = 0;
-  time_ = 0;
+  n_frames_ = 0;
   max_cte_ = 0;
+  sum_cte_ = 0;
 }

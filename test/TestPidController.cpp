@@ -6,6 +6,7 @@
 const auto kKp = 0.1;
 const auto kKi = 1e-4;
 const auto kKd = 4.0;
+const auto kOffTrackCte = 5.0;
 const auto kdKp = 0.01;
 const auto kdKi = 1e-5;
 const auto kdKd = 0.1;
@@ -22,7 +23,7 @@ public:
 
 TEST(PidController, FinalCoefficients) {
   User user;
-  PidController pid_controller(kKp, kKi, kKd);
+  PidController pid_controller(kKp, kKi, kKd, kOffTrackCte);
   double steering;
   double throttle;
   Robot robot;
@@ -48,12 +49,13 @@ TEST(PidController, FinalCoefficients) {
                           std::bind(&User::OnReset, &user)); 
   }
   EXPECT_NEAR(steering, 0, 1e-3);
-  EXPECT_NEAR(throttle, 1, 1e-3);
+  EXPECT_NEAR(throttle, 1, 0.1);
 }
 
 TEST(PidController, InitialCoefficientsOnTrack) {
   User user;
-  PidController pid_controller(kKp, kKi, kKd, kdKp, kdKi, kdKd, 10, 5);
+  PidController pid_controller(kKp, kKi, kKd, kOffTrackCte,
+                               kdKp, kdKi, kdKd, 10);
   double steering;
   double throttle;
   for (auto i = 0; i < 5; ++i) {
@@ -70,7 +72,8 @@ TEST(PidController, InitialCoefficientsOnTrack) {
 
 TEST(PidController, InitialCoefficientsOffTrack) {
   User user;
-  PidController pid_controller(kKp, kKi, kKd, kdKp, kdKi, kdKd, 10, 5);
+  PidController pid_controller(kKp, kKi, kKd, kOffTrackCte,
+                               kdKp, kdKi, kdKd, 10);
   double steering;
   double throttle;
   for (auto i = 0; i < 5; ++i) {
@@ -87,7 +90,8 @@ TEST(PidController, InitialCoefficientsOffTrack) {
 
 TEST(PidController, InitialCoefficientsTrackComplete) {
   User user;
-  PidController pid_controller(kKp, kKi, kKd, kdKp, kdKi, kdKd, 10, 5);
+  PidController pid_controller(kKp, kKi, kKd, kOffTrackCte,
+                               kdKp, kdKi, kdKd, 10);
   double steering;
   double throttle;
   for (auto i = 0; i < 5; ++i) {
