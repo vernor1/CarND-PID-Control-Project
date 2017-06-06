@@ -17,8 +17,14 @@ const auto kKp = 0.12;
 const auto kKi = 1e-5;
 const auto kKd = 4.0;
 
-// CTE when the vehicle is considered off-track
+// Default CTE when the vehicle is considered off-track
 const auto kOffTrackCte = 5.0;
+
+// Minimum allowed off-track CTE
+const auto kMinOffTrackCte = 0.1;
+
+// Minimum allowed track length in meters
+const auto kMinTrackLength = 50.0;
 
 // Local Helper-Functions
 // -----------------------------------------------------------------------------
@@ -34,6 +40,33 @@ std::string GetJsonData(const std::string& s) {
   return found_null == std::string::npos
     && b1 != std::string::npos
     && b2 != std::string::npos ? s.substr(b1, b2 - b1 + 1) : std::string();
+}
+
+// Processes first four command line parameters.
+// @param[in]  argc           Number of arguments
+// @param[in]  argv           Array of arguments
+// @param[in]  usage          String containing usage instructions
+// @param[out] kp             Coefficient Kp of PID
+// @param[out] ki             Coefficient Ki of PID
+// @param[out] kd             Coefficient Kd of PID
+// @param[out] off_track_cte  CTE when the vehicle is considered off-track
+void ProcessBaseParameters(int argc, char* argv[],
+                           const std::string& usage,
+                           double& kp, double& ki, double& kd,
+                           double& off_track_cte) {
+  assert(argc > 4);
+  kp = std::stod(argv[1]);
+  ki = std::stod(argv[2]);
+  kd = std::stod(argv[3]);
+  off_track_cte = std::stod(argv[4]);
+  if (off_track_cte < 0) {
+    std::cerr << "Error: offTrackCte may not be negative" << std::endl << usage;
+    std::exit(EXIT_FAILURE);
+  } else if (off_track_cte < kMinOffTrackCte) {
+    std::cerr << "Error: offTrackCte must be greater than " << kMinOffTrackCte
+              << std::endl << usage;
+    std::exit(EXIT_FAILURE);
+  }
 }
 
 // Checks arguments of the program and exits, if the check fails.
@@ -73,33 +106,45 @@ std::shared_ptr<PidController> CreatePidController(int argc, char* argv[]) {
         pid_controller.reset(new PidController(kKp, kKi, kKd, kOffTrackCte));
         break;
       case 5: {
-        auto kp = std::stod(argv[1]);
-        auto ki = std::stod(argv[2]);
-        auto kd = std::stod(argv[3]);
-        auto off_track_cte = std::stod(argv[4]);
+        auto kp = 0.;
+        auto ki = 0.;
+        auto kd = 0.;
+        auto off_track_cte = 0.;
+        ProcessBaseParameters(argc, argv, oss.str(), kp, ki, kd, off_track_cte);
         pid_controller.reset(new PidController(kp, ki, kd, off_track_cte));
         break;
       }
       case 9: {
-        auto kp = std::stod(argv[1]);
-        auto ki = std::stod(argv[2]);
-        auto kd = std::stod(argv[3]);
-        auto off_track_cte = std::stod(argv[4]);
+        auto kp = 0.;
+        auto ki = 0.;
+        auto kd = 0.;
+        auto off_track_cte = 0.;
+        ProcessBaseParameters(argc, argv, oss.str(), kp, ki, kd, off_track_cte);
         auto dkp = std::stod(argv[5]);
         auto dki = std::stod(argv[6]);
         auto dkd = std::stod(argv[7]);
         auto track_length = std::stod(argv[8]);
+        if (track_length < 0) {
+          std::cerr << "Error: trackLength may not be negative" << std::endl
+                    << oss.str();
+          std::exit(EXIT_FAILURE);
+        } else if (track_length < kMinTrackLength) {
+          std::cerr << "Error: trackLength must be greater than "
+                    << kMinTrackLength << std::endl << oss.str();
+          std::exit(EXIT_FAILURE);
+        }
         pid_controller.reset(new PidController(kp, ki, kd, off_track_cte,
                                                dkp, dki, dkd, track_length));
         break;
       }
       default:
-        std::cerr << "Invalid number of arguments." << std::endl << oss.str();
+        std::cerr << "Error: invalid number of arguments" << std::endl << oss.str();
         std::exit(EXIT_FAILURE);
     }
   }
   catch (const std::exception& e) {
-    std::cerr << "Invalid data format: " << e.what() << std::endl << oss.str();
+    std::cerr << "Error: invalid data format: " << e.what() << std::endl
+              << oss.str();
     std::exit(EXIT_FAILURE);
   }
 

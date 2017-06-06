@@ -82,6 +82,8 @@ PidController::PidController(double kp, double ki, double kd,
     pid_(new Pid(kp, ki, kd)),
     twiddler_(
       new Twiddler({{.p=kp, .dp=dkp}, {.p=ki, .dp=dki}, {.p=kd, .dp=dkd}})) {
+  assert(off_track_cte > 0);
+  assert(track_length > 0);
   std::cout << "Creating PID controller with initial coefficients Kp=" << kp
             << ", Ki=" << ki << ", Kd=" << kd << ", dKp=" << dkp << ", dKi="
             << dki << ", dKd=" << dkd << ", off-track CTE=" << off_track_cte
@@ -99,6 +101,7 @@ PidController::PidController(double kp, double ki, double kd,
     max_cte_(),
     sum_cte_(),
     pid_(new Pid(kp, ki, kd)) {
+  assert(off_track_cte > 0);
   std::cout << "Creating PID controller with final coefficients Kp="
             << kp << ", Ki=" << ki << ", Kd=" << kd << std::endl;
 }
