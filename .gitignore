@@ -1,6 +1,4 @@
-.vscode
 build
 tags
-.editorconfig
 *.swp
 .DS_Store
