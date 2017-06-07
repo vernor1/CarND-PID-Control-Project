@@ -81,4 +81,5 @@ PID
 ### Notes
 
 * The code is complying with the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-* All function/method comments are made Doxygen-friendly
+* The [Google Test](https://github.com/google/googletest) framework is used for unit-testing the code.
+* All function/method comments are made Doxygen-friendly,
