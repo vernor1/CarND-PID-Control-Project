@@ -50,9 +50,9 @@ If [dKp dKi dKd trackLength] are also provided, the PID controller finds best co
 ### Reflection
 #### 1. Describe the effect each of the P, I, D components had in your implementation.
 
-* **Proportional (P)** component of the PID controller only takes into account the current cross-track error (CTE) and produces the error value proportional to CTE. It's not enough for a reliable steering control, since a proportional-only controller tends to oscilate around the ideal trajectory. See the P-only recording below.
-* **Differencial (D)** component accounts for the rate of CTE change, thus able to handle rapid trajectory changes as well as compensate for frequent oscillations caused by the P-component. See the D-only recording below.
-* **Integral (I)** component takes into account the accumulated past CTE, respondidng to a constant added error. It's able to handle the case of a constant drift, but for the cost of a high added initial error, while the accumulated CTE is small. The I-component is quite useless in this project since the simulator seems to implement a perfect steering. There's no difference in full PID and PD driving observed in sumulation (see the corresponding recordings below).
+* **Proportional (P)** component of the PID controller only takes into account the current cross-track error (CTE) and produces the error value proportional to CTE. It's not enough for a reliable steering control, since a proportional-only controller tends to oscillate around the ideal trajectory. See the P-only recording below.
+* **Differential (D)** component accounts for the rate of CTE change, thus able to handle rapid trajectory changes as well as compensate for frequent oscillations caused by the P-component. See the D-only recording below.
+* **Integral (I)** component takes into account the accumulated past CTE, responding to a constant added error. It's able to handle the case of a constant drift, but for the cost of a high added initial error, while the accumulated CTE is small. The I-component is quite useless in this project since the simulator seems to implement a perfect steering. There's no difference in full PID and PD driving observed in simulation (see the corresponding recordings below).
 
 P-only | D-only | PD
 :---:|:---:|:---:
@@ -61,8 +61,24 @@ P-only | D-only | PD
 #### 2. Describe how the final hyperparameters were chosen.
 
 Final PID coefficients are Kp=0.12, Ki=1e-05, Kd=4, which were found by using the Twiddle algorithm. The error value for Twiddle is computed in the following way:
-* If the vehicle is getting off-track before completing the first lap, the error value is inversely proportional to the driven distance, penaltized by 1e+6 in order to make it consistently larger than any Twiddle error when the lap is completed safely.
-* If the vehicle completes the first lap, the error is computed as the maximum CTE observed during the lap (to penaltize dangerous cornering), multiplied by the average CTE (to penaltize winding steering).
+* If the vehicle is getting off-track before completing the first lap, the error value is inversely proportional to the driven distance, penalized by 1e+6 in order to make it consistently larger than any Twiddle error when the lap is completed safely.
+* If the vehicle completes the first lap, the error is computed as the maximum CTE observed during the lap (to penalize dangerous cornering), multiplied by the average CTE (to penalize winding steering).
 
 A recording of finding optimal PID coefficients (click to see the full footage):
 [![](gif/twiddler.gif)](https://youtu.be/X2BjdL26SXw "Twiddler")
+
+---
+### Simulation
+#### 1. The vehicle must successfully drive a lap around the track.
+
+A recording of the final PID control (click to see the full footage):
+
+PID
+:---:|
+[![](gif/pid.gif)](https://youtu.be/KtHdqrzXhTw "PID")
+
+---
+### Notes
+
+* The code is complying with the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
+* All function/method comments are made Doxygen-friendly
