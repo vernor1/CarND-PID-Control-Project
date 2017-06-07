@@ -81,5 +81,31 @@ PID
 ### Notes
 
 * The code is complying with the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-* The [Google Test](https://github.com/google/googletest) framework is used for unit-testing the code.
-* All function/method comments are made Doxygen-friendly,
+* All function/method comments are made Doxygen-friendly.
+* The [Google Test](https://github.com/google/googletest) framework is used for unit-testing the code. To build and run the tests, enter the command in the build directory:
+```
+$ cmake -Dtest=ON .. && make && make test
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /Users/vernor/Documents/carnd/carnd_pid_control/build
+[  8%] Built target pid_controller_lib
+[ 16%] Built target pid_lib
+[ 24%] Built target twiddler_lib
+[ 56%] Built target gtest
+[ 64%] Built target test_pid_controller
+[ 72%] Built target test_pid
+[ 80%] Built target test_twiddler
+[100%] Built target pid
+Running tests...
+Test project /Users/vernor/Documents/carnd/carnd_pid_control/build
+    Start 1: test_twiddler
+1/3 Test #1: test_twiddler ....................   Passed    0.82 sec
+    Start 2: test_pid
+2/3 Test #2: test_pid .........................   Passed    0.02 sec
+    Start 3: test_pid_controller
+3/3 Test #3: test_pid_controller ..............   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Total Test time (real) =   0.87 sec
+```
