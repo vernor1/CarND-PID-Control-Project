@@ -30,6 +30,22 @@ The base algorithm follows what's presented in the lessons. The code structure i
 * `test/TestTwiddler.cpp`: Tests class `Twiddler`
 * `test/Robot.h`: Implements a basic robot for unit-tests.
 
+The executable binary supports command-line parameters to toggle the modes - free driving using default or provided PID coefficients, or finding optimal PID coefficients using the Twiddle algorithm:
+```
+Usage instructions: ./pid [Kp Ki Kd offTrackCte] [dKp dKi dKd trackLength]
+  Kp          Proportional coefficient
+  Ki          Integral coefficient
+  Kd          Differential coefficient
+  offTrackCte Approximate CTE when getting off track
+  dKp         Delta of Kp
+  dKi         Delta of Ki
+  dKd         Delta of Kd
+  trackLength Approximate track length in meters
+If no arguments provided, the default values are used: Kp=0.12, Ki=1e-05, Kd=4, offTrackCte=5.
+If only [Kp Ki Kd] are provided, the PID controller uses those values.
+If [dKp dKi dKd trackLength] are also provided, the PID controller finds best coefficients using the Twiddle algorithm, and uses them.
+```
+
 ---
 ### Reflection
 #### 1. Describe the effect each of the P, I, D components had in your implementation.
@@ -41,3 +57,12 @@ The base algorithm follows what's presented in the lessons. The code structure i
 P-only | D-only | PD
 :---:|:---:|:---:
 [![](gif/p-only.gif)](https://youtu.be/E-wOO8_RmYo "P-only, click to see the full footage") | [![](gif/d-only.gif)](https://youtu.be/VhSkjgRqJFo "D-only, click to see the full footage") | [![](gif/pd.gif)](https://youtu.be/uOMmduFpcH8 "PD, click to see the full footage")
+
+#### 2. Describe how the final hyperparameters were chosen.
+
+Final PID coefficients are Kp=0.12, Ki=1e-05, Kd=4, which were found by using the Twiddle algorithm. The error value for Twiddle is computed in the following way:
+* If the vehicle is getting off-track before completing the first lap, the error value is inversely proportional to the driven distance, penaltized by 1e+6 in order to make it consistently larger than any Twiddle error when the lap is completed safely.
+* If the vehicle completes the first lap, the error is computed as the maximum CTE observed during the lap (to penaltize dangerous cornering), multiplied by the average CTE (to penaltize winding steering).
+
+A recording of finding optimal PID coefficients (click to see the full footage):
+[![](gif/twiddler.gif)](https://youtu.be/X2BjdL26SXw "Twiddler")
