@@ -79,7 +79,7 @@ std::shared_ptr<PidController> CreatePidController(int argc, char* argv[]) {
         << " [Kp Ki Kd offTrackCte] [dKp dKi dKd trackLength]" << std::endl
         << "  Kp          Proportional coefficient" << std::endl
         << "  Ki          Integral coefficient" << std::endl
-        << "  Kd          Differential coefficient" << std::endl
+        << "  Kd          Derivativf coefficient" << std::endl
         << "  offTrackCte Approximate CTE when getting off track" << std::endl
         << "  dKp         Delta of Kp" << std::endl
         << "  dKi         Delta of Ki" << std::endl
