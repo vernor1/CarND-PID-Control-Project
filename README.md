@@ -35,7 +35,7 @@ The executable binary supports command-line parameters to toggle the modes - fre
 Usage instructions: ./pid [Kp Ki Kd offTrackCte] [dKp dKi dKd trackLength]
   Kp          Proportional coefficient
   Ki          Integral coefficient
-  Kd          Differential coefficient
+  Kd          Derivative coefficient
   offTrackCte Approximate CTE when getting off track
   dKp         Delta of Kp
   dKi         Delta of Ki
@@ -51,7 +51,7 @@ If [dKp dKi dKd trackLength] are also provided, the PID controller finds best co
 #### 1. Describe the effect each of the P, I, D components had in your implementation.
 
 * **Proportional (P)** component of the PID controller only takes into account the current cross-track error (CTE) and produces the error value proportional to CTE. It's not enough for a reliable steering control, since a proportional-only controller tends to oscillate around the ideal trajectory. See the P-only recording below.
-* **Differential (D)** component accounts for the rate of CTE change, thus able to handle rapid trajectory changes as well as compensate for frequent oscillations caused by the P-component. See the D-only recording below.
+* **Derivative (D)** component accounts for the rate of CTE change, thus able to handle rapid trajectory changes as well as compensate for frequent oscillations caused by the P-component. See the D-only recording below.
 * **Integral (I)** component takes into account the accumulated past CTE, responding to a constant added error. It's able to handle the case of a constant drift, but for the cost of a high added initial error, while the accumulated CTE is small. The I-component is quite useless in this project since the simulator seems to implement a perfect steering. There's no difference in full PID and PD driving observed in simulation (see the corresponding recordings below).
 
 P-only | D-only | PD
